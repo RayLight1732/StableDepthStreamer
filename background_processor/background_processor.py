@@ -20,19 +20,6 @@ class BackgroundProcessor(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_foreground(
-        self,
-        frame: cv2.typing.MatLike,
-        depth: np.ndarray,
-        mask: Union[np.ndarray, None],
-    ) -> tuple[Union[np.ndarray, None], Union[np.ndarray, None]]:
-        """
-        マスク(前景が1,背景が0)を適用した画像及び深度を計算する
-        返り値: bgraの画像,
-        """
-        pass
-
-    @abstractmethod
     def get_background(self) -> tuple[Union[np.ndarray, None], Union[np.ndarray, None]]:
         """背景画像及び深度を取得する"""
         pass

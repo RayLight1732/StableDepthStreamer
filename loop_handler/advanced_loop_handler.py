@@ -5,6 +5,7 @@ import time
 from depth_predictor.depth_predictor import DepthPredictor
 from stream_client.stream_client import StreamClient
 from background_processor.background_processor import BackgroundProcessor
+from foreground_processor.foreground_processor import ForegroundProcessor
 from mask_caluculator.mask_calculator import MaskCalculator
 from typing import Callable
 from stream_client.png_data import PngData
@@ -25,12 +26,14 @@ class AdvancedLoopHandler(LoopHandler):
         id: str,
         predictor: DepthPredictor,
         client: StreamClient,
+        fg_processor: ForegroundProcessor,
         bg_processor: BackgroundProcessor,
         mask_calculator: MaskCalculator,
     ):
         self.id = id
         self.predictor = predictor
         self.client = client
+        self.fg_processor = fg_processor
         self.bg_processor = bg_processor
         self.mask_calculator = mask_calculator
 
@@ -45,7 +48,7 @@ class AdvancedLoopHandler(LoopHandler):
         self.bg_processor.update_background(frame, depth, mask)
 
         if mask is not None:
-            foreground_frame, foreground_depth = self.bg_processor.get_foreground(
+            foreground_frame, foreground_depth = self.fg_processor.get_foreground(
                 frame, depth, mask
             )
             background_frame, background_depth = self.bg_processor.get_background()
@@ -82,18 +85,21 @@ class AdvancedLoopHandlerFactory(LoopHandlerFactory):
         self,
         predictor: DepthPredictor,
         client: StreamClient,
+        fg_processor_factory: Callable[[], ForegroundProcessor],
         bg_processor_factory: Callable[[], BackgroundProcessor],
         mask_calculator_factory: Callable[[], MaskCalculator],
     ):
         super().__init__()
         self.predictor = predictor
         self.client = client
+        self.fg_processor_factory = fg_processor_factory
         self.bg_processor_factory = bg_processor_factory
         self.mask_calculator_factory = mask_calculator_factory
 
     def create(self, id: str) -> AdvancedLoopHandler:
+        fg_processor = self.fg_processor_factory()
         bg_processor = self.bg_processor_factory()
         mask_calculator = self.mask_calculator_factory()
         return AdvancedLoopHandler(
-            id, self.predictor, self.client, bg_processor, mask_calculator
+            id, self.predictor, self.client, fg_processor, bg_processor, mask_calculator
         )

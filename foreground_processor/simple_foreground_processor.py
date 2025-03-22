@@ -4,7 +4,7 @@ import numpy as np
 from typing import Union, Optional
 
 
-class ForegroundProcessor(ForegroundProcessor):
+class SimpleForegroundProcessor(ForegroundProcessor):
 
     def get_foreground(
         self,

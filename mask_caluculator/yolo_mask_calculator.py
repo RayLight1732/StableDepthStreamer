@@ -23,7 +23,9 @@ class YOLOMaskCalculator(MaskCalculator):
     ) -> Union[np.ndarray, None]:
         """前景を1,背景を0としたマスクを計算する"""
         # 推論画像を保存しない、0.25以上の精度のものを出力、logを出さない
-        result = self.model.predict(frame, save=False, conf=0.25, verbose=False)[0]
+        result = self.model.predict(
+            frame, save=False, conf=0.25, verbose=False, retina_masks=True
+        )[0]
         # 複数枚の推論に対応しているため、返り値は配列だが、今回は一枚のためインデックス0を使用
         is_obb = result.obb is not None
         boxes = result.obb if is_obb else result.boxes

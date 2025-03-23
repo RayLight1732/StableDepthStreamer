@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import cv2
+from camera_parameter import CameraParameter
 
 
 class LoopHandler(metaclass=ABCMeta):
@@ -13,9 +14,9 @@ class LoopHandler(metaclass=ABCMeta):
 
 class LoopHandlerFactory(metaclass=ABCMeta):
     @abstractmethod
-    def create(self, id: str) -> LoopHandler:
+    def create(self, parameter: CameraParameter) -> LoopHandler:
         """
         新しいLoopHandlerを作成する
-        id: 対象のカメラID
+        parameter: 対象のカメラパラメータ
         """
         pass

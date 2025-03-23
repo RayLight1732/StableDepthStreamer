@@ -18,6 +18,7 @@ from util import (
     TYPE_FOREGROUND_DEPTH,
     TYPE_FOREGROUND_IMAGE,
 )
+from camera_parameter import CameraParameter
 
 
 class AdvancedLoopHandler(LoopHandler):
@@ -85,9 +86,9 @@ class AdvancedLoopHandlerFactory(LoopHandlerFactory):
         self,
         predictor: DepthPredictor,
         client: StreamClient,
-        fg_processor_factory: Callable[[], ForegroundProcessor],
-        bg_processor_factory: Callable[[], BackgroundProcessor],
-        mask_calculator_factory: Callable[[], MaskCalculator],
+        fg_processor_factory: Callable[[CameraParameter], ForegroundProcessor],
+        bg_processor_factory: Callable[[CameraParameter], BackgroundProcessor],
+        mask_calculator_factory: Callable[[CameraParameter], MaskCalculator],
     ):
         super().__init__()
         self.predictor = predictor

@@ -2,9 +2,16 @@ from foreground_processor.foreground_processor import ForegroundProcessor
 import cv2
 import numpy as np
 from typing import Union
+from camera_parameter import CameraParameter
+from sklearn.cluster import DBSCAN
 
 
 class FilteredForegroundProcessor(ForegroundProcessor):
+
+    def __init__(self, camera_param: CameraParameter, eps=0.1, min_samples=10):
+        self.camera_param = camera_param
+        self.eps = eps
+        self.min_samples = min_samples
 
     def get_foreground(
         self,
@@ -18,11 +25,35 @@ class FilteredForegroundProcessor(ForegroundProcessor):
         """
         if mask is None:
             return None, None
-        # bitwize andでは0~255のマスクを利用する
-        foreground_depth = cv2.bitwise_and(depth, depth, mask=mask * 255)
 
-        # アルファチャンネルを追加したBGRA画像を作成
+        fx, fy, cx, cy = (
+            self.camera_param.fx,
+            self.camera_param.fy,
+            self.camera_param.cx,
+            self.camera_param.cy,
+        )
+
+        y_indices, x_indices = mask.nonzero()
+        z = depth[y_indices, x_indices]
+        x = (x_indices - cx) * z / fx
+        y = (y_indices - cy) * z / fy
+        points = np.column_stack((x, y, z))
+
+        clustering = DBSCAN(eps=self.eps, min_samples=self.min_samples).fit(points)
+        labels = clustering.labels_
+        cluster_points = points[labels != -1]
+
+        new_depth = np.zeros_like(depth.shape, dtype=np.float32)
+
+        x_meter: np.ndarray
+        y_meter: np.ndarray
+        z_meter: np.ndarray
+        x_meter, y_meter, z_meter = cluster_points.T
+        x_indices = ((x_meter + cx) / z_meter * fx).astype(int)
+        y_indices = ((y_meter + cy) / z_meter * fy).astype(int)
+        new_depth[y_indices, x_indices] = z_meter
+
         alpha = mask.astype(np.uint8)
         bgra = cv2.merge((frame, alpha))
 
-        return bgra, foreground_depth
+        return bgra, new_depth

@@ -4,9 +4,9 @@ import numpy as np
 from typing import Union
 
 
-class Uint8ForegroundProcessor(ForegroundProcessor):
+class ScaledFloat32ForegroundProcessor(ForegroundProcessor):
     """
-    depthを8ビットに量子化する
+    depthをfloat32に変換する
     """
 
     def __init__(self, max_distance: float, processor: ForegroundProcessor):
@@ -30,6 +30,6 @@ class Uint8ForegroundProcessor(ForegroundProcessor):
         if foreground_depth is None:
             return bgra, foreground_depth
 
-        foreground_depth = (foreground_depth / self.max_distance * 255).astype(np.uint8)
+        foreground_depth = (foreground_depth / self.max_distance).astype(np.float32)
 
         return bgra, foreground_depth

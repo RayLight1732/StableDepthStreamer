@@ -10,6 +10,8 @@ class CameraParameter:
     cy: float
     id: str
     index: int
+    width:int
+    height:int
 
 
 # camera_parameters:

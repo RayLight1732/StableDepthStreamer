@@ -1,8 +1,7 @@
 import cv2
 import numpy as np
 from typing import Union
-from mask_calculator import MaskCalculator
-
+from mask_calculator.mask_calculator import MaskCalculator
 
 class MockMaskCaluculator(MaskCalculator):
 
@@ -16,6 +15,6 @@ class MockMaskCaluculator(MaskCalculator):
     ) -> Union[np.ndarray, None]:
         """前景を1,背景を0としたマスクを計算する"""
         if self.is_all_foreground:
-            return np.ones(frame.shape)
+            return np.ones(frame.shape[:2],np.uint8)
         else:
-            return np.zeros(frame.shape)
+            return np.zeros(frame.shape[:2],np.uint8)

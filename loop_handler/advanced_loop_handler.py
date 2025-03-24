@@ -6,7 +6,7 @@ from depth_predictor.depth_predictor import DepthPredictor
 from stream_client.stream_client import StreamClient
 from background_processor.background_processor import BackgroundProcessor
 from foreground_processor.foreground_processor import ForegroundProcessor
-from mask_caluculator.mask_calculator import MaskCalculator
+from mask_calculator.mask_calculator import MaskCalculator
 from typing import Callable
 from stream_client.png_data import PngData
 from stream_client.raw_image_data import RawImageData
@@ -18,6 +18,7 @@ from util import (
     TYPE_FOREGROUND_DEPTH,
     TYPE_FOREGROUND_IMAGE,
 )
+import logger
 from camera_parameter import CameraParameter
 
 
@@ -39,7 +40,6 @@ class AdvancedLoopHandler(LoopHandler):
         self.mask_calculator = mask_calculator
 
     def on_loop(self, frame: cv2.typing.MatLike):
-        start = time.time()
         self.client.send_data(SizeData(self.id, frame.shape[1], frame.shape[0]))
 
         depth = self.predictor.predict(frame)
@@ -77,30 +77,30 @@ class AdvancedLoopHandler(LoopHandler):
                     self.id, TYPE_BACKGROUND_DEPTH, background_id, background_depth
                 )
                 self.client.send_data(background_depth_data)
-        end = time.time()
-        print(f"update takes {end-start}s")
+
 
 
 class AdvancedLoopHandlerFactory(LoopHandlerFactory):
     def __init__(
         self,
-        predictor: DepthPredictor,
+        predictor_factory:Callable[[CameraParameter],DepthPredictor],
         client: StreamClient,
         fg_processor_factory: Callable[[CameraParameter], ForegroundProcessor],
         bg_processor_factory: Callable[[CameraParameter], BackgroundProcessor],
         mask_calculator_factory: Callable[[CameraParameter], MaskCalculator],
     ):
         super().__init__()
-        self.predictor = predictor
+        self.predictor_factory = predictor_factory
         self.client = client
         self.fg_processor_factory = fg_processor_factory
         self.bg_processor_factory = bg_processor_factory
         self.mask_calculator_factory = mask_calculator_factory
 
-    def create(self, id: str) -> AdvancedLoopHandler:
-        fg_processor = self.fg_processor_factory()
-        bg_processor = self.bg_processor_factory()
-        mask_calculator = self.mask_calculator_factory()
+    def create(self, cam_param:CameraParameter) -> AdvancedLoopHandler:
+        predictor = self.predictor_factory(cam_param)
+        fg_processor = self.fg_processor_factory(cam_param)
+        bg_processor = self.bg_processor_factory(cam_param)
+        mask_calculator = self.mask_calculator_factory(cam_param)
         return AdvancedLoopHandler(
-            id, self.predictor, self.client, fg_processor, bg_processor, mask_calculator
+            cam_param.id, predictor, self.client, fg_processor, bg_processor, mask_calculator
         )

@@ -1,4 +1,4 @@
-from mask_caluculator.mask_calculator import MaskCalculator
+from mask_calculator.mask_calculator import MaskCalculator
 import cv2
 import numpy as np
 from typing import Union

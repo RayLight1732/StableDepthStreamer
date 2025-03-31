@@ -18,8 +18,10 @@ class SimpleForegroundProcessor(ForegroundProcessor):
         """
         if mask is None:
             return None, None
-        # bitwize andでは0~255のマスクを利用する
-        foreground_depth = cv2.bitwise_and(depth, depth, mask=mask * 255)
+        
+        # 以降では0~255のマスクを利用する
+        mask = mask * 255
+        foreground_depth = cv2.bitwise_and(depth, depth, mask=mask)
 
         # アルファチャンネルを追加したBGRA画像を作成
         alpha = mask.astype(np.uint8)

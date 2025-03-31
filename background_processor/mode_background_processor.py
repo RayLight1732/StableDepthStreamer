@@ -4,17 +4,18 @@ import numpy as np
 import cupy as cp
 from typing import Union, Optional
 from background_processor.background_processor import BackgroundProcessor
-
-
+import logger
+from camera_parameter import CameraParameter
 class ModeBackgroundProcessor(BackgroundProcessor):
     def __init__(
-        self, max_distance: float = 20, weight=1 / 1000, num_initial_frames=10
+        self, cam_param:CameraParameter,max_distance: float = 20, weight=1 / 1000, num_initial_frames=10
     ):
         """
         max_distance:         最大距離
         weight:             新しいフレームの重み（未使用）
         num_initial_frames: 初期化に用いる画像の枚数
         """
+        self.id = cam_param.id
         self.max_distance = max_distance
         self.background_frame = None
         self.background_depth = None
@@ -29,8 +30,7 @@ class ModeBackgroundProcessor(BackgroundProcessor):
         """
         マスクが1の部分を前景として、背景を加重平均で更新する
         """
-        start = time.time()
-
+        logger.logger.start_process(self.id,"mode filter")
         frame_gpu = cp.asarray(frame)
 
         # 深度を 0~255 に正規化
@@ -68,10 +68,11 @@ class ModeBackgroundProcessor(BackgroundProcessor):
                 x_indices, y_indices = cp.indices(depth_gpu.shape)
                 self.bg_histogram[x_indices, y_indices, self.background_depth] += 10
                 self.max_bins = self.background_depth
-
+                logger.logger.end_process(self.id,"mode filter")
             return
 
         if mask is None:
+            logger.logger.end_process(self.id,"mode filter")
             return
 
         mask_gpu = cp.asarray(mask)
@@ -98,9 +99,7 @@ class ModeBackgroundProcessor(BackgroundProcessor):
         match_pixels = depth_gpu == self.max_bins
         update_pixels = match_pixels & (mask_gpu == 0)
         self.background_frame[update_pixels] = frame_gpu[update_pixels]  # type: ignore
-
-        end = time.time()
-        print(f"mode filter takes {end - start}s")
+        logger.logger.end_process(self.id,"mode filter")
 
     def get_background(self) -> tuple[Union[np.ndarray, None], Union[np.ndarray, None]]:
         """背景画像及び深度を取得する"""

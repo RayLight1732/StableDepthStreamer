@@ -20,7 +20,14 @@ from util import (
 )
 import logger
 from camera_parameter import CameraParameter
+from abc import ABCMeta, abstractmethod
+from typing import Union
 
+
+class AdditionalWorker(metaclass=ABCMeta):
+    @abstractmethod
+    def run(self,foreground_frame:Union[np.ndarray,None],foreground_depth:Union[np.ndarray,None],background_frame:Union[np.ndarray,None],background_depth:Union[np.ndarray,None]):
+        pass
 
 class AdvancedLoopHandler(LoopHandler):
     def __init__(
@@ -31,6 +38,7 @@ class AdvancedLoopHandler(LoopHandler):
         fg_processor: ForegroundProcessor,
         bg_processor: BackgroundProcessor,
         mask_calculator: MaskCalculator,
+        additional_worker:Union[AdditionalWorker,None] = None
     ):
         self.id = id
         self.predictor = predictor
@@ -38,6 +46,7 @@ class AdvancedLoopHandler(LoopHandler):
         self.fg_processor = fg_processor
         self.bg_processor = bg_processor
         self.mask_calculator = mask_calculator
+        self.additional_worker = additional_worker
 
     def on_loop(self, frame: cv2.typing.MatLike):
         self.client.send_data(SizeData(self.id, frame.shape[1], frame.shape[0]))
@@ -77,6 +86,9 @@ class AdvancedLoopHandler(LoopHandler):
                     self.id, TYPE_BACKGROUND_DEPTH, background_id, background_depth
                 )
                 self.client.send_data(background_depth_data)
+        
+            if self.additional_worker is not None:
+                self.additional_worker.run(foreground_frame,foreground_depth,background_frame,background_depth)
 
 
 
@@ -88,6 +100,7 @@ class AdvancedLoopHandlerFactory(LoopHandlerFactory):
         fg_processor_factory: Callable[[CameraParameter], ForegroundProcessor],
         bg_processor_factory: Callable[[CameraParameter], BackgroundProcessor],
         mask_calculator_factory: Callable[[CameraParameter], MaskCalculator],
+        additional_worker_factory:Union[Callable[[CameraParameter],AdditionalWorker],None] = None
     ):
         super().__init__()
         self.predictor_factory = predictor_factory
@@ -95,12 +108,16 @@ class AdvancedLoopHandlerFactory(LoopHandlerFactory):
         self.fg_processor_factory = fg_processor_factory
         self.bg_processor_factory = bg_processor_factory
         self.mask_calculator_factory = mask_calculator_factory
+        self.additional_worker_factory = additional_worker_factory
 
     def create(self, cam_param:CameraParameter) -> AdvancedLoopHandler:
         predictor = self.predictor_factory(cam_param)
         fg_processor = self.fg_processor_factory(cam_param)
         bg_processor = self.bg_processor_factory(cam_param)
         mask_calculator = self.mask_calculator_factory(cam_param)
+        additional_worker = self.additional_worker_factory(cam_param) if self.additional_worker_factory is not None else None
         return AdvancedLoopHandler(
-            cam_param.id, predictor, self.client, fg_processor, bg_processor, mask_calculator
+            cam_param.id, predictor, self.client, fg_processor, bg_processor, mask_calculator,additional_worker
         )
+    
+

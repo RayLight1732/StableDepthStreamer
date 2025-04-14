@@ -21,10 +21,10 @@ class SimpleForegroundProcessor(ForegroundProcessor):
         
         # 以降では0~255のマスクを利用する
         mask = mask * 255
-        foreground_depth = cv2.bitwise_and(depth, depth, mask=mask)
+        #foreground_depth = cv2.bitwise_and(depth, depth, mask=mask)
 
         # アルファチャンネルを追加したBGRA画像を作成
         alpha = mask.astype(np.uint8)
         bgra = cv2.merge((frame, alpha))
 
-        return bgra, foreground_depth
+        return bgra, depth

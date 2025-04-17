@@ -38,22 +38,23 @@ class FilteredForegroundProcessor(ForegroundProcessor):
         x = (x_indices - cx) * z / fx
         y = (y_indices - cy) * z / fy
         points = np.column_stack((x, y, z))
+        if len(points) != 0:
+            clustering = DBSCAN(eps=self.eps, min_samples=self.min_samples).fit(points)
+            labels = clustering.labels_
+            cluster_points = points[labels != -1]
 
-        clustering = DBSCAN(eps=self.eps, min_samples=self.min_samples).fit(points)
-        labels = clustering.labels_
-        cluster_points = points[labels != -1]
+            new_depth = np.zeros(shape=depth.shape, dtype=np.float32)
 
-        new_depth = np.zeros_like(depth.shape, dtype=np.float32)
+            x_meter: np.ndarray
+            y_meter: np.ndarray
+            z_meter: np.ndarray
+            x_meter, y_meter, z_meter = cluster_points.T
+            x_indices = ((x_meter / z_meter * fx) + cx).astype(int)
+            y_indices = ((y_meter / z_meter * fy) + cy).astype(int)
+            new_depth[y_indices, x_indices] = z_meter
 
-        x_meter: np.ndarray
-        y_meter: np.ndarray
-        z_meter: np.ndarray
-        x_meter, y_meter, z_meter = cluster_points.T
-        x_indices = ((x_meter + cx) / z_meter * fx).astype(int)
-        y_indices = ((y_meter + cy) / z_meter * fy).astype(int)
-        new_depth[y_indices, x_indices] = z_meter
+            depth = new_depth
 
-        alpha = mask.astype(np.uint8)
+        alpha = (mask * 255).astype(np.uint8)
         bgra = cv2.merge((frame, alpha))
-
-        return bgra, new_depth
+        return bgra, depth
